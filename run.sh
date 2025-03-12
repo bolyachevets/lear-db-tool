@@ -13,35 +13,21 @@ load_oc_db() {
   # Remove the 'pod/' prefix from the pod name
   prefix="pod/"
   pod_name=${pod_name#"$prefix"}
-  src="${pod_name}:/backups/daily/${DUMP_FILE_PATH}"
+
+  date=$(TZ=US/Pacific date +%Y-%m-%d)
+  src="${pod_name}://backups/daily/${date}/postgresql-${OC_ENV}-${db}_${date}_01-00-00.sql.gz"
   echo "Source path: $src"
 
-  # Download the database dump file
   db_file="${db}.sql.gz"
+
   oc -n $namespace cp $src $db_file
-
-  if [ -e $db_file ]; then
-    echo "Database dump downloaded successfully"
+  if [ -e $db_file ]
+  then
+      echo "downloaded successfully from daily backups"
   else
-    echo "Failed to download database dump"
-    exit 1
-  fi
-
-  # Count files before extraction
-  count_before=$(ls -1 | wc -l)
-
-  # Extract the database dump
-  tar -xzvf $db_file
-
-  # Count files after extraction
-  count_after=$(ls -1 | wc -l)
-
-  # Calculate the number of new files
-  new_files=$((count_after - count_before))
-  echo "Number of files extracted: $new_files"
-
-  if [ $new_files -eq 2 ]; then
-    db_file="backup.sql"
+    src="${pod_name}://backups/monthly/${date}/postgresql-${OC_ENV}-${db}_${date}_01-00-00.sql.gz"
+    oc -n $namespace cp $src $db_file
+    echo "downloaded successfully from monthly backups"
   fi
 
   # Upload the database dump to Google Cloud Storage
@@ -69,7 +55,9 @@ EOF
   gcloud --quiet sql import sql $GCP_SQL_INSTANCE "gs://${DB_BUCKET}/${db}/${db_file}" --database=$DB_NAME --user=$DB_USER
   gcloud sql operations list --instance=$GCP_SQL_INSTANCE --filter='NOT status:done' --format='value(name)' | xargs -r gcloud sql operations wait --timeout=unlimited
 
-
+  #mask
+  gcloud --quiet sql import sql $GCP_SQL_INSTANCE "gs://${DB_BUCKET}/mask/lear.sql" --database=$DB_NAME --user=$DB_USER
+  gcloud sql operations list --instance=$GCP_SQL_INSTANCE --filter='NOT status:done' --format='value(name)' | xargs -r gcloud sql operations wait --timeout=unlimited
 }
 
 # Change to the working directory
@@ -80,8 +68,3 @@ oc login --server=$OC_SERVER --token=$OC_TOKEN
 
 # Load the database
 load_oc_db $OC_NAMESPACE $DB_NAME
-
-#mask
-
-# gcloud --quiet sql import sql lear-db-sandbox "gs://lear-db-dump-sandbox/mask/lear.sql" --database=lear --user="user5SJ"
-gcloud --quiet sql import sql $GCP_SQL_INSTANCE "gs://${DB_BUCKET}/mask/lear.sql" --database="$DB_NAME" --user="$DB_USER"
