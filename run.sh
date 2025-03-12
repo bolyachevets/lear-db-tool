@@ -20,6 +20,7 @@ load_oc_db() {
 
   db_file="${db}.sql.gz"
 
+  # ocp backup container stores monthly backups in a different location
   oc -n $namespace cp $src $db_file
   if [ -e $db_file ]
   then
@@ -48,10 +49,11 @@ EOF
 
   gsutil cp user.sql "gs://${DB_BUCKET}/${db}/"
 
+  # import user grants
   gcloud --quiet sql import sql $GCP_SQL_INSTANCE "gs://${DB_BUCKET}/${db}/user.sql" --database=$DB_NAME --user=postgres
   gcloud sql operations list --instance=$GCP_SQL_INSTANCE --filter='NOT status:done' --format='value(name)' | xargs -r gcloud sql operations wait --timeout=unlimited
 
-  # Import the database dump
+  # import the database dump
   gcloud --quiet sql import sql $GCP_SQL_INSTANCE "gs://${DB_BUCKET}/${db}/${db_file}" --database=$DB_NAME --user=$DB_USER
   gcloud sql operations list --instance=$GCP_SQL_INSTANCE --filter='NOT status:done' --format='value(name)' | xargs -r gcloud sql operations wait --timeout=unlimited
 
