@@ -84,6 +84,8 @@ fi
 if [ "$SANDBOX_LOAD" == true ]; then
   gcloud config set project "${SANDBOX_PROJECT_ID}"
 
+  gcloud sql instances restart $SANDBOX_TARGET_INSTANCE
+
   gcloud --quiet sql databases delete $DB_NAME --instance=$SANDBOX_TARGET_INSTANCE
   gcloud sql databases create $DB_NAME --instance=$SANDBOX_TARGET_INSTANCE
 
