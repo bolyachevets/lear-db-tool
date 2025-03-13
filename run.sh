@@ -87,7 +87,7 @@ if [ "$SANDBOX_LOAD" == true ]; then
   gcloud --quiet sql databases delete $DB_NAME --instance=$SANDBOX_TARGET_INSTANCE
   gcloud sql databases create $DB_NAME --instance=$SANDBOX_TARGET_INSTANCE
 
-  gcloud --quiet sql import sql $SANDBOX_TARGET_INSTANCE "gs://${DB_BUCKET}/${db}/user.sql" --database=$DB_NAME --user=postgres
+  gcloud --quiet sql import sql $SANDBOX_TARGET_INSTANCE "gs://${DB_BUCKET}/${DB_NAME}/user.sql" --database=$DB_NAME --user=postgres
   gcloud sql operations list --instance=$GCP_SQL_INSTANCE --filter='NOT status:done' --format='value(name)' | xargs -r gcloud sql operations wait --timeout=unlimited
 
   gcloud --quiet sql import sql $SANDBOX_TARGET_INSTANCE "gs://${DB_BUCKET}/backups/${db_file}" --database=$DB_NAME --user=$DB_USER
