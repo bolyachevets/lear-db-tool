@@ -1,4 +1,4 @@
-#!/bin/sh
+#!/bin/bash
 
 load_oc_db() {
   local namespace="$1"
@@ -65,8 +65,15 @@ EOF
 # Change to the working directory
 cd /opt/app-root
 
-# Log in to OpenShift
-oc login --server=$OC_SERVER --token=$OC_TOKEN
+if [ "$LOAD_DATA_FROM_OCP" == true ]; then
+  # Log in to OpenShift
+  oc login --server=$OC_SERVER --token=$OC_TOKEN
+  # Load the database
+  load_oc_db $OC_NAMESPACE $DB_NAME
+fi
 
-# Load the database
-load_oc_db $OC_NAMESPACE $DB_NAME
+if [ "$CREATE_BACKUP" == true ]; then
+  # generate mask backup for use later
+  gcloud sql export sql $GCP_SQL_INSTANCE "gs://${DB_BUCKET}/backups" --database=$DB_NAME \
+  gcloud sql operations list --instance=$GCP_SQL_INSTANCE --filter='NOT status:done' --format='value(name)' | xargs -r gcloud sql operations wait --timeout=unlimited
+fi

@@ -1,1 +1,1 @@
-OCP to GCP datbase sync job
+OCP to GCP database sync job
