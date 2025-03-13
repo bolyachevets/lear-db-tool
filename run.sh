@@ -73,7 +73,8 @@ if [ "$LOAD_DATA_FROM_OCP" == true ]; then
 fi
 
 if [ "$CREATE_BACKUP" == true ]; then
+  db_file="${database_name}.sql.gz"
   # generate mask backup for use later
-  gcloud sql export sql $GCP_SQL_INSTANCE "gs://${DB_BUCKET}/backups" --database=$DB_NAME
+  gcloud sql export sql $GCP_SQL_INSTANCE "gs://${DB_BUCKET}/backups/${db_file}" --database=$DB_NAME
   gcloud sql operations list --instance=$GCP_SQL_INSTANCE --filter='NOT status:done' --format='value(name)' | xargs -r gcloud sql operations wait --timeout=unlimited
 fi
