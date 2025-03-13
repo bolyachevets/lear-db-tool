@@ -62,6 +62,7 @@ EOF
   gcloud sql operations list --instance=$GCP_SQL_INSTANCE --filter='NOT status:done' --format='value(name)' | xargs -r gcloud sql operations wait --timeout=unlimited
 }
 
+
 # Change to the working directory
 cd /opt/app-root
 
@@ -76,5 +77,19 @@ if [ "$CREATE_BACKUP" == true ]; then
   db_file="${database_name}.sql.gz"
   # generate mask backup for use later
   gcloud sql export sql $GCP_SQL_INSTANCE "gs://${DB_BUCKET}/backups/${db_file}" --database=$DB_NAME
+  gcloud sql operations list --instance=$GCP_SQL_INSTANCE --filter='NOT status:done' --format='value(name)' | xargs -r gcloud sql operations wait --timeout=unlimited
+fi
+
+if [ "$SANDBOX_LOAD" == true ]; then
+  gcloud config set project "${SANDBOX_PROJECT_ID}"
+
+  gcloud --quiet sql databases delete $DB_NAME --instance=$SANDBOX_TARGET_INSTANCE
+  gcloud sql databases create $DB_NAME --instance=$SANDBOX_TARGET_INSTANCE
+
+  gcloud --quiet sql import sql $SANDBOX_TARGET_INSTANCE "gs://${DB_BUCKET}/${db}/user.sql" --database=$DB_NAME --user=postgres
+  gcloud sql operations list --instance=$GCP_SQL_INSTANCE --filter='NOT status:done' --format='value(name)' | xargs -r gcloud sql operations wait --timeout=unlimited
+
+  db_file="${database_name}.sql.gz"
+  gcloud --quiet sql import sql $SANDBOX_TARGET_INSTANCE "gs://${DB_BUCKET}/backups/${db_file}" --database=$DB_NAME --user=$DB_USER
   gcloud sql operations list --instance=$GCP_SQL_INSTANCE --filter='NOT status:done' --format='value(name)' | xargs -r gcloud sql operations wait --timeout=unlimited
 fi
