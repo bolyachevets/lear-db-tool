@@ -66,6 +66,8 @@ EOF
 # Change to the working directory
 cd /opt/app-root
 
+db_file="lear.sql.gz"
+
 if [ "$LOAD_DATA_FROM_OCP" == true ]; then
   # Log in to OpenShift
   oc login --server=$OC_SERVER --token=$OC_TOKEN
@@ -74,7 +76,6 @@ if [ "$LOAD_DATA_FROM_OCP" == true ]; then
 fi
 
 if [ "$CREATE_BACKUP" == true ]; then
-  db_file="${database_name}.sql.gz"
   # generate mask backup for use later
   gcloud sql export sql $GCP_SQL_INSTANCE "gs://${DB_BUCKET}/backups/${db_file}" --database=$DB_NAME
   gcloud sql operations list --instance=$GCP_SQL_INSTANCE --filter='NOT status:done' --format='value(name)' | xargs -r gcloud sql operations wait --timeout=unlimited
@@ -89,7 +90,6 @@ if [ "$SANDBOX_LOAD" == true ]; then
   gcloud --quiet sql import sql $SANDBOX_TARGET_INSTANCE "gs://${DB_BUCKET}/${db}/user.sql" --database=$DB_NAME --user=postgres
   gcloud sql operations list --instance=$GCP_SQL_INSTANCE --filter='NOT status:done' --format='value(name)' | xargs -r gcloud sql operations wait --timeout=unlimited
 
-  db_file="${database_name}.sql.gz"
   gcloud --quiet sql import sql $SANDBOX_TARGET_INSTANCE "gs://${DB_BUCKET}/backups/${db_file}" --database=$DB_NAME --user=$DB_USER
   gcloud sql operations list --instance=$GCP_SQL_INSTANCE --filter='NOT status:done' --format='value(name)' | xargs -r gcloud sql operations wait --timeout=unlimited
 fi
